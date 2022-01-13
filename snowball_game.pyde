@@ -183,3 +183,5 @@ def draw():
     draw_tobogganer()
     image(*player_sprites[0])
     noFill()
+    print('dfsfs')
+    print("hihi")
