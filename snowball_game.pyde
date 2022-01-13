@@ -9,16 +9,16 @@ def player_throw():
 
 
 def draw_snowball():
-    global snowballX, snowballY, sb_vertexX, sb_vertexY
+    global sb_vertexX, sb_vertexY
     if sb_vertexX:
-        snowballX -= sbXincr
+        snowball_sprites[0][1] -= sbXincr
         a = (SB_START_Y-sb_vertexY) / (SB_START_X-sb_vertexX)**2
-        snowballY = (SB_START_Y-sb_vertexY) * (snowballX-sb_vertexX)**2\
+        snowball_sprites[0][2] = (SB_START_Y-sb_vertexY) * (snowball_sprites[0][1]-sb_vertexX)**2\
         // (SB_START_X-sb_vertexX)**2 + sb_vertexY
-        if snowballX < 0:
+        if snowball_sprites[0][1] < 0:
             sb_vertexX, sb_vertexY = None, None
-            snowballX, snowballY = 872, 604    
-    image(snowball, snowballX, snowballY, SNOWBALL_W, SNOWBALL_H)
+            snowball_sprites[0][1], snowball_sprites[0][2] = 872, 604    
+    image(*snowball_sprites[0])
 
 
 def draw_crosshair():
@@ -183,5 +183,3 @@ def draw():
     draw_tobogganer()
     image(*player_sprites[0])
     noFill()
-    print('dfsfs')
-    print("hihi")
