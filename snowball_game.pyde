@@ -15,9 +15,20 @@ def draw_snowball():
         a = (SB_START_Y-sb_vertexY) / (SB_START_X-sb_vertexX)**2
         snowball_sprites[0][2] = (SB_START_Y-sb_vertexY) * (snowball_sprites[0][1]-sb_vertexX)**2\
         // (SB_START_X-sb_vertexX)**2 + sb_vertexY
-        if snowball_sprites[0][1] < 0:
+        
+        snowballCollided = detect_collision(snowball_sprites[0][1:], toboggan_down_sprites[0][1:]) or \
+                detect_collision(snowball_sprites[0][1:], toboggan_up_sprites[0][1:]) or \
+                detect_collision(snowball_sprites[0][1:], (bgX-50, bgY, 50, canvasH)) or \
+                detect_collision(snowball_sprites[0][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH))
+                
+        if snowballCollided:
+            snowball_sprites[1][1], snowball_sprites[1][2] = snowball_sprites[0][1], snowball_sprites[0][2]
+            snowball_sprites[2][1], snowball_sprites[2][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             sb_vertexX, sb_vertexY = None, None
-            snowball_sprites[0][1], snowball_sprites[0][2] = 872, 604    
+            snowball_sprites[0][1], snowball_sprites[0][2] = 872, 604   
+            image(*snowball_sprites[1])
+            image(*snowball_sprites[2])
+    
     image(*snowball_sprites[0])
 
 
@@ -89,11 +100,11 @@ def draw_snowflakes():
     pass
 
 
-def detect_collision(sprite1X, sprite1Y, sprite2X, sprite2Y, sprite2W, sprite2H):
-    collided = False
-    if sprite2X < sprite1X < sprite2X+sprite2W or sprite2Y < sprite1Y < sprite2Y+sprite2H:
-        collided = True
-    return collided
+def detect_collision(sprite1, sprite2):
+    sprite1X, sprite1Y, sprite1W, sprite1H = sprite1
+    sprite2X, sprite2Y, sprite2W, sprite2H = sprite2
+    return (sprite2X < sprite1X < sprite2X+sprite2W or sprite2X < sprite1X+sprite1W < sprite2X+sprite2W) and \
+        (sprite2Y < sprite1Y < sprite2Y+sprite2H or sprite2Y < sprite1Y+sprite1H < sprite2Y+sprite2H)
 
 
 def draw_menu():
@@ -141,8 +152,8 @@ def setup():
     
     snowball_sprites = [
                          [loadImage("snowball.png"), 920, 585, 18, 18],
-                         [loadImage("snowball_break1.png"), 920, 585, 18, 18],
-                         [loadImage("snowball_break2.png"), 920, 585, 18, 18]
+                         [loadImage("snowball_break1.png"), 920, 585, 25, 25],
+                         [loadImage("snowball_break2.png"), 920, 585, 40, 40]
                          ]
     # scale of the bg (p:m) = 1000: 100 = 10:1 and game is at 60fps
     sbXincr = 15*3    # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower
