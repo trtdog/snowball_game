@@ -2,6 +2,23 @@ add_library('minim')
 import random
 
 
+def get_game_info():
+    images = {}
+    image_names = ['background', 'crosshair', 'player_aim', 'player_idle', 'player_pickup1', 'player_pickup2', 'player_throw1',
+                   'player_throw2', 'present', 'snowball', 'snowball_break1', 'snowball_break2', 'snowflake', 'sword', 'target_slide1',
+                   'target_slide2', 'target_walk1', 'target_walk2', 'target_walk3']
+    image_files = []
+    with open("info.txt") as f:
+        lines = f.readlines()
+        for l in lines[1:4]:
+            image_files += l.rstrip(',\n').split(', ')
+        for index, image_name in enumerate(image_names):
+            images[image_name] = image_files[index]
+            
+        game_settings = [l.rstrip().split(' = ') for l in lines[6:]]
+    return images, game_settings
+
+                
 def player_throw():
     for i in range(1, len(player_sprites)):
         image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
@@ -21,7 +38,7 @@ def draw_snowball():
                 detect_collision(snowball_sprites[0][1:], (bgX-50, bgY, 50, canvasH)) or \
                 detect_collision(snowball_sprites[0][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH)) or \
                 detect_collision(snowball_sprites[0][1:], hill_points, True)
-                
+        
         if snowballCollided:
             snowball_sprites[1][1], snowball_sprites[1][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             snowball_sprites[2][1], snowball_sprites[2][2] = snowball_sprites[0][1], snowball_sprites[0][2]
@@ -64,21 +81,22 @@ def draw_tobogganer():
     rotate(toboggan_radians[point_count-1])
     popMatrix()
     if goingDown:
-        if point_count % 2 == 0:
-            toboggan_down_sprites[0][1] = round(hill_points[point_count][0])
-            toboggan_down_sprites[0][2] = round(hill_points[point_count][1])-67
-            image(*toboggan_down_sprites[0])        
-        elif point_count % 2 == 1:
-            toboggan_down_sprites[1][1] = round(hill_points[point_count][0])
-            toboggan_down_sprites[1][2] = round(hill_points[point_count][1])-67
-            image(*toboggan_down_sprites[1])
-        
-        point_count += 1
-        if point_count == len(hill_points)-1:
-            goingDown = False
+        if frameCount % game_setting_options[game_settings[1][0]][game_settings[1][1]][0] == 0:
+            if point_count % 2 == 0:
+                toboggan_down_sprites[0][1] = round(hill_points[point_count][0])
+                toboggan_down_sprites[0][2] = round(hill_points[point_count][1])-67
+                image(*toboggan_down_sprites[0])        
+            elif point_count % 2 == 1:
+                toboggan_down_sprites[1][1] = round(hill_points[point_count][0])
+                toboggan_down_sprites[1][2] = round(hill_points[point_count][1])-67
+                image(*toboggan_down_sprites[1])
+            
+            point_count += 1
+            if point_count == len(hill_points)-1:
+                goingDown = False
     
     else:
-        if frameCount % 4 == 0:
+        if frameCount % game_setting_options[game_settings[1][0]][game_settings[1][1]][1] == 0:
             if point_count % 3 == 1:
                 toboggan_up_sprites[0][1] = round(hill_points[point_count][0])
                 toboggan_up_sprites[0][2] = round(hill_points[point_count][1])-67
@@ -139,30 +157,48 @@ def setup():
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
     global bg, bgX, bgY, canvasW, canvasH
     global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
+    global game_settings, game_setting_options
+    
+    game_setting_options = {
+                            'snowball_speed':
+                                {'low': 10, 'medium': 15, 'high': 20},    # u = x-inc
+                            'toboggan_speed':
+                                {'low': [3, 10], 'medium': [2, 8], 'high': [1, 6]},    # u = frameCount/deltaFrames, [a, b] a=down, b=up
+                            'crosshair_width':
+                                {'low': 30, 'medium': 50, 'high': 70},    # u = p
+                            'crosshair_height':
+                                {'low': 30, 'medium': 50, 'high': 70},    # u = p
+                            'snowing':
+                                {'low': 5, 'medium': 10, 'high': 15}    # u = delta snowballs / 60 frameCount
+                                }
+    images, game_settings = get_game_info()
+    high_score = game_settings.pop(0)[1]
     
     canvasW, canvasH = 1000, 800
-    bg = loadImage("background.png")
+    bg = loadImage(images['background'])
     bgX, bgY = 0, 0
     
     player_sprites = [
-                [loadImage("player_idle.png"), 870, 683-125, 75, 125],
-                [loadImage("player_aim.png"), 870, 683-125, 75, 125],
-                [loadImage("player_throw1.png"), 870, 683-125, 75, 125],
-                [loadImage("player_throw2.png"), 870, 683-125, 75, 125],
-                [loadImage("player_pickup1.png"), 870, 683-125, 75, 125],
-                [loadImage("player_pickup2.png"), 870, 683-125, 75, 125]
+                [loadImage(images['player_idle']), 870, 683-125, 75, 125],
+                [loadImage(images['player_aim']), 870, 683-125, 75, 125],
+                [loadImage(images['player_throw1']), 870, 683-125, 75, 125],
+                [loadImage(images['player_throw2']), 870, 683-125, 75, 125],
+                [loadImage(images['player_pickup1']), 870, 683-125, 75, 125],
+                [loadImage(images['player_pickup2']), 870, 683-125, 75, 125]
                 ]    #Sprite parameters: image, x, y, w, h
       
-    crosshair = loadImage("crosshair.png")
-    CROSSHAIR_W, CROSSHAIR_H = 50, 50
+    crosshair = loadImage(images['crosshair'])
+    CROSSHAIR_W = game_setting_options[game_settings[2][0]][game_settings[2][1]]
+    CROSSHAIR_H = game_setting_options[game_settings[3][0]][game_settings[3][1]]
     
     snowball_sprites = [
-                         [loadImage("snowball.png"), 920, 585, 18, 18],
-                         [loadImage("snowball_break1.png"), 920, 585, 25, 25],
-                         [loadImage("snowball_break2.png"), 920, 585, 40, 40]
+                         [loadImage(images['snowball']), 920, 585, 18, 18],
+                         [loadImage(images['snowball_break1']), 920, 585, 25, 25],
+                         [loadImage(images['snowball_break2']), 920, 585, 40, 40]
                          ]
     # scale of the bg (p:m) = 1000: 100 = 10:1 and game is at 60fps
-    sbXincr = 15*3    # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower
+    # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower
+    sbXincr = game_setting_options[game_settings[0][0]][game_settings[0][1]]*3    
     SB_START_X, SB_START_Y = 920, 585
     sb_vertexX, sb_vertexY = None, None
     
@@ -170,13 +206,13 @@ def setup():
     point_count = 1
     toboggan_radians = get_tobaggan_radians(hill_points)
     toboggan_down_sprites = [
-                             [loadImage("target_slide1.png"), hill_points[0][0], hill_points[0][1]-67, 75, 67],
-                             [loadImage("target_slide2.png"), hill_points[0][0], hill_points[0][1]-67, 75, 67]
+                             [loadImage(images['target_slide1']), hill_points[0][0], hill_points[0][1]-67, 75, 67],
+                             [loadImage(images['target_slide2']), hill_points[0][0], hill_points[0][1]-67, 75, 67]
                              ]
     toboggan_up_sprites = [
-                           [loadImage("target_walk1.png"), hill_points[-1][0], hill_points[-1][1]-67, 75, 67],
-                           [loadImage("target_walk2.png"), hill_points[-1][0], hill_points[-1][1]-67, 75, 67],
-                           [loadImage("target_walk3.png"), hill_points[-1][0], hill_points[-1][1]-67, 75, 67]
+                           [loadImage(images['target_walk1']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67],
+                           [loadImage(images['target_walk2']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67],
+                           [loadImage(images['target_walk3']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67]
                            ]
     goingDown = True
     

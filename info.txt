@@ -1,12 +1,12 @@
 Image Names: 
 background.png, crosshair.png, player_aim.png, player_idle.png, player_pickup1.png, player_pickup2.png, player_throw1.png,
 player_throw2.png, present.png, snowball.png, snowball_break1.png, snowball_break2.png, snowflake.png, sword.png,
-target_slide2.png, target_walk1.png, target_walk2.png
+target_slide1.png, target_slide2.png, target_walk1.png, target_walk2.png, target_walk3.png
 
 Other variables:
-high score = 0
-snowball speed = medium
-toboganner speed = medium
-crosshair width = medium
-crosshair height = medium
+high_score = 0
+snowball_speed = medium
+toboggan_speed = medium
+crosshair_width = medium
+crosshair_height = medium
 snowing = medium
