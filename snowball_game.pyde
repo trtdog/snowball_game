@@ -19,7 +19,8 @@ def draw_snowball():
         snowballCollided = detect_collision(snowball_sprites[0][1:], toboggan_down_sprites[0][1:]) or \
                 detect_collision(snowball_sprites[0][1:], toboggan_up_sprites[0][1:]) or \
                 detect_collision(snowball_sprites[0][1:], (bgX-50, bgY, 50, canvasH)) or \
-                detect_collision(snowball_sprites[0][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH))
+                detect_collision(snowball_sprites[0][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH)) or \
+                detect_collision(snowball_sprites[0][1:], hill_points, True)
                 
         if snowballCollided:
             snowball_sprites[1][1], snowball_sprites[1][2] = snowball_sprites[0][1], snowball_sprites[0][2]
@@ -100,11 +101,17 @@ def draw_snowflakes():
     pass
 
 
-def detect_collision(sprite1, sprite2):
+def detect_collision(sprite1, sprite2, curveObj=False):
     sprite1X, sprite1Y, sprite1W, sprite1H = sprite1
-    sprite2X, sprite2Y, sprite2W, sprite2H = sprite2
-    return (sprite2X < sprite1X < sprite2X+sprite2W or sprite2X < sprite1X+sprite1W < sprite2X+sprite2W) and \
-        (sprite2Y < sprite1Y < sprite2Y+sprite2H or sprite2Y < sprite1Y+sprite1H < sprite2Y+sprite2H)
+    if not curveObj:
+        sprite2X, sprite2Y, sprite2W, sprite2H = sprite2
+        return (sprite2X < sprite1X < sprite2X+sprite2W or sprite2X < sprite1X+sprite1W < sprite2X+sprite2W) and \
+            (sprite2Y < sprite1Y < sprite2Y+sprite2H or sprite2Y < sprite1Y+sprite1H < sprite2Y+sprite2H)
+    else:
+        # if the sprite2 is a curve, I'm passing a list of points as the argument
+        for p in sprite2:
+            if sprite1X <= p[0] and sprite1Y+sprite1H >= p[1]:
+                return True
 
 
 def draw_menu():
