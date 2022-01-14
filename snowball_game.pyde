@@ -139,9 +139,8 @@ def setup():
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
     global bg, bgX, bgY, canvasW, canvasH
     global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
-
+    
     canvasW, canvasH = 1000, 800
-
     bg = loadImage("background.png")
     bgX, bgY = 0, 0
     
