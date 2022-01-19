@@ -6,19 +6,20 @@ def get_game_info():
     images = {}
     image_names = ['background', 'crosshair', 'player_aim', 'player_idle', 'player_pickup1', 'player_pickup2', 'player_throw1',
                    'player_throw2', 'present', 'snowball', 'snowball_break1', 'snowball_break2', 'snowflake', 'sword', 'target_slide1',
-                   'target_slide2', 'target_walk1', 'target_walk2', 'target_walk3']
+                   'target_slide2', 'target_walk1', 'target_walk2', 'target_walk3', 'player_wait', 'player_walk1', 'player_walk2', 'player_walk3', 
+                   'player_dead', 'santa_fly1', 'santa_fly2', 'background2']
     image_files = []
     with open("info.txt") as f:
         lines = f.readlines()
-        for line in lines[1:4]:
+        for line in lines[1:5]:
             image_files += line.rstrip(',\n').split(', ')
         for index, image_name in enumerate(image_names):
             images[image_name] = image_files[index]
             
-        game_settings = [line.rstrip().split(' = ') for line in lines[6:]]
+        game_settings = [line.rstrip().split(' = ') for line in lines[7:]]
     return images, game_settings
 
-                                    
+
 def player_throw():
     for i in range(1, len(player_sprites)):
         image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
@@ -227,10 +228,6 @@ def draw_resume():
     fill(0, 0, 0)    
     text("Resume", (top_left[0]+bottom_right[0])/2, (top_left[1]+bottom_right[1])/2)
     noFill()
-        
-
-def game_end():
-    pass
 
 
 def detect_button_pressed(boundary):
@@ -268,6 +265,10 @@ def menu_system():
         draw_resume()
     elif index == 3:
         startGame = True
+
+
+def game_end():
+    pass
     
     
 def mouseReleased():
@@ -297,7 +298,7 @@ def setup():
     global player_sprites
     global snowball_sprites, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time, a, d, Vt, Vi, sb_inverse
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
-    global bg, bgX, bgY, canvasW, canvasH
+    global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY
     global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
     global game_settings, game_setting_options, high_score, score, startGame
     global all_boundaries, button_lengths, BUTTON_HEIGHT, startX, startY, buttonActivated, buttonPressed
@@ -324,6 +325,12 @@ def setup():
     bgX, bgY = 0, 0
     canvasW, canvasH = 1000, 800
     
+    bg_end = loadImage(images['background2'])
+    bg_endX = canvasW
+    bg_endY = 0
+    bg_endW = 400
+    bg_endH = canvasH
+    
     all_boundaries = []
     button_lengths = (120, 100, 110, 110)    # Order: Most left -> Most right on the canvas
     BUTTON_HEIGHT = 50
@@ -342,14 +349,24 @@ def setup():
     prev_index = None
     
     player_sprites = [
-                [loadImage(images['player_idle']), 870, 683-125, 75, 125],
-                [loadImage(images['player_aim']), 870, 683-125, 75, 125],
-                [loadImage(images['player_throw1']), 870, 683-125, 75, 125],
-                [loadImage(images['player_throw2']), 870, 683-125, 75, 125],
-                [loadImage(images['player_pickup1']), 870, 683-125, 75, 125],
-                [loadImage(images['player_pickup2']), 870, 683-125, 75, 125]
-                ]    #Sprite parameters: image, x, y, w, h
-      
+                      [loadImage(images['player_idle']), 870, 683-125, 75, 125],
+                      [loadImage(images['player_aim']), 870, 683-125, 75, 125],
+                      [loadImage(images['player_throw1']), 870, 683-125, 75, 125],
+                      [loadImage(images['player_throw2']), 870, 683-125, 75, 125],
+                      [loadImage(images['player_pickup1']), 870, 683-125, 75, 125],
+                      [loadImage(images['player_pickup2']), 870, 683-125, 75, 125]
+                         ]    #Sprite parameters: image, x, y, w, h
+    
+    player_sprites_end = [
+                          [loadImage(images['player_wait']), 870, 683-125, 75, 125],
+                          [loadImage(images['player_walk1']), 870, 683-125, 75, 125],
+                          [loadImage(images['player_walk2']), 870, 683-125, 75, 125],
+                          [loadImage(images['player_walk3']), 870, 683-125, 75, 125],
+                          [loadImage(images['player_dead']), 870, 683-125, 75, 125],
+                          ]
+    
+    santa_flying_sprites = [[loadImage(images['santa_fly1']), 0, 50, 200, 50], [loadImage(images['santa_fly2']), 0, 50, 200, 50]]
+    
     crosshair = loadImage(images['crosshair'])
     CROSSHAIR_W = game_setting_options[game_settings[2][0]][game_settings[2][1]]
     CROSSHAIR_H = game_setting_options[game_settings[3][0]][game_settings[3][1]]

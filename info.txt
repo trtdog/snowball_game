@@ -1,7 +1,8 @@
 Image Names: 
 background.png, crosshair.png, player_aim.png, player_idle.png, player_pickup1.png, player_pickup2.png, player_throw1.png,
 player_throw2.png, present.png, snowball.png, snowball_break1.png, snowball_break2.png, snowflake.png, sword.png,
-target_slide1.png, target_slide2.png, target_walk1.png, target_walk2.png, target_walk3.png
+target_slide1.png, target_slide2.png, target_walk1.png, target_walk2.png, target_walk3.png, player_wait.png,
+player_walk1.png, player_walk2.png, player_walk3.png, player_dead.png, santa_fly1.png, santa_fly2.png, background2.png
 
 Other variables:
 high_score = 0
