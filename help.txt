@@ -1,0 +1,13 @@
+INSTRUCTIONS:
+
+Created by Martin Yang, this snowball game is simple to play.
+
+- To aim, click your crosshair. 
+  When you release your mouse, the player throws the snowball aimed at your crosshair
+
+- Your score increases when you hit the toboganner
+
+- When you run out of snowballs, depending on how many times you hit the player, 
+  Santa will either drop a sword that penetrates your head or a nice Christmas present.
+  You will not know how many times you need to hit the player
+  to get the present because Christmas gifts are supposed to be a big surprise!

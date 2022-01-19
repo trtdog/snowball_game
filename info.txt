@@ -9,4 +9,4 @@ snowball_speed = medium
 toboggan_speed = medium
 crosshair_width = medium
 crosshair_height = medium
-snowing = medium
+snowing_rate = medium
