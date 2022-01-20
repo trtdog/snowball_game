@@ -21,6 +21,12 @@ def get_game_info():
 
 
 def player_throw():
+    global num_snowballs, gameEnd
+    
+    num_snowballs -= 1
+    if num_snowballs == 0:
+        gameEnd = True
+
     for i in range(1, len(player_sprites)):
         image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
                 player_sprites[i][3], player_sprites[i][4])
@@ -96,7 +102,7 @@ def draw_tobogganer():
     rotate(toboggan_radians[point_count-1])
     popMatrix()
     if goingDown:
-        if frameCount % game_setting_options[game_settings[1][0]][game_settings[1][1]][0] == 0:
+        if frameCount % game_setting_options[game_settings[2][0]][game_settings[2][1]][0] == 0:
             if point_count % 2 == 0:
                 toboggan_down_sprites[0][1] = round(hill_points[point_count][0])
                 toboggan_down_sprites[0][2] = round(hill_points[point_count][1])-67
@@ -111,7 +117,7 @@ def draw_tobogganer():
                 goingDown = False
     
     else:
-        if frameCount % game_setting_options[game_settings[1][0]][game_settings[1][1]][1] == 0:
+        if frameCount % game_setting_options[game_settings[2][0]][game_settings[2][1]][1] == 0:
             if point_count % 3 == 1:
                 toboggan_up_sprites[0][1] = round(hill_points[point_count][0])
                 toboggan_up_sprites[0][2] = round(hill_points[point_count][1])-67
@@ -148,12 +154,13 @@ def detect_collision(sprite1, sprite2, curveObj=False):
     
     
 def draw_menu():
-    global startX
+    global startX, num_snowballs
 
     textFont(font, 20)
     fill(255, 255, 255)
-    text("Score: "+str(score), canvasW-60, 40)
-    text("High Score: "+str(high_score), canvasW-83, 80)
+    text("High Score: "+str(high_score), canvasW-83, 40)
+    text("Score: "+str(score), canvasW-60, 80)
+    text("Snowballs: "+str(num_snowballs), canvasW-80, 120)
         
     for i, boundary in enumerate(all_boundaries):
         top_left = boundary[0]
@@ -268,11 +275,42 @@ def menu_system():
 
 
 def game_end():
-    pass
+    global bgX, bg_endX, player_count, santa_count
+
+    image(bg, bgX, bgY, canvasW, canvasH)
+    image(bg_end, bg_endX, bg_endY, bg_endW, bg_endH)
     
+    if bg_endX > canvasW-bg_endW:
+        bg_endX -= 5
+        bgX -= 5
+        
+        for i in range(len(player_sprites_end)):
+            player_sprites_end[i][1] -= 2
+        if player_count % 4 == 0 or player_count % 4 == 2:
+            image(*player_sprites_end[2])
+        elif player_count % 4 == 1:
+            image(*player_sprites_end[1])
+        elif player_count % 4 == 3:
+            image(*player_sprites_end[3])
+        player_count += 1
+        
+    else:
+        if santa_count % 2 == 0:
+            image(*santa_flying_sprites[0])
+        if santa_count % 2 == 1:
+            image(*santa_flying_sprites[1])
+        santa_flying_sprites[0][1] += 5
+        santa_flying_sprites[1][1] += 5
+        santa_count += 1
+        
+        if santa_flying_sprites[0][1] >= player_sprites_end[0][1]:
+            pass
+        
+        image(*player_sprites_end[0])
+
     
 def mouseReleased():
-    global sb_vertexX, sb_vertexY, drawThrow, sb_start_time, sb_inverse, startGame, buttonPressed
+    global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, startGame, buttonPressed
     
     if startGame and detect_button_pressed(( (canvasW/2-100, canvasH/2-50), (canvasW/2+100, canvasH/2+50) )):
         buttonPressed = True
@@ -295,16 +333,20 @@ def mouseReleased():
 def setup():
     """Sets up all the key variables in the game"""
     
-    global player_sprites
-    global snowball_sprites, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time, a, d, Vt, Vi, sb_inverse
+    global player_sprites, player_sprites_end, player_count
+    global snowball_sprites, num_snowballs, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time
+    global a, d, Vt, Vi, sb_inverse
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
-    global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY
+    global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY, bg_endW, bg_endH
     global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
-    global game_settings, game_setting_options, high_score, score, startGame
+    global game_settings, game_setting_options, high_score, score, startGame, gameEnd
     global all_boundaries, button_lengths, BUTTON_HEIGHT, startX, startY, buttonActivated, buttonPressed
     global font, button_texts, prev_index
+    global santa_flying_sprites, santa_count
     
     game_setting_options = {
+                            'starting_snowballs':
+                                {'10': 10, '20': 20, '30': 30},
                             'snowball_speed':
                                 {'low': 10, 'medium': 15, 'high': 20},    # u = x-inc
                             'toboggan_speed':
@@ -320,13 +362,14 @@ def setup():
     high_score = game_settings.pop(0)[1]
     score = 0
     startGame = True
+    gameEnd = False
     
     bg = loadImage(images['background'])
     bgX, bgY = 0, 0
     canvasW, canvasH = 1000, 800
     
-    bg_end = loadImage(images['background2'])
-    bg_endX = canvasW
+    bg_end = loadImage(images['background2'])    # The bg for the end of the game
+    bg_endX = canvasW-10
     bg_endY = 0
     bg_endW = 400
     bg_endH = canvasH
@@ -357,6 +400,7 @@ def setup():
                       [loadImage(images['player_pickup2']), 870, 683-125, 75, 125]
                          ]    #Sprite parameters: image, x, y, w, h
     
+    player_count = 0
     player_sprites_end = [
                           [loadImage(images['player_wait']), 870, 683-125, 75, 125],
                           [loadImage(images['player_walk1']), 870, 683-125, 75, 125],
@@ -365,11 +409,14 @@ def setup():
                           [loadImage(images['player_dead']), 870, 683-125, 75, 125],
                           ]
     
-    santa_flying_sprites = [[loadImage(images['santa_fly1']), 0, 50, 200, 50], [loadImage(images['santa_fly2']), 0, 50, 200, 50]]
+    santa_flying_sprites = [[loadImage(images['santa_fly1']), 0, 50, 200, 138], [loadImage(images['santa_fly2']), 0, 50, 200, 138]]
+    santa_count = 0
+    present = loadImage(images['present'])
+    sword = loadImage(images['sword'])
     
     crosshair = loadImage(images['crosshair'])
-    CROSSHAIR_W = game_setting_options[game_settings[2][0]][game_settings[2][1]]
-    CROSSHAIR_H = game_setting_options[game_settings[3][0]][game_settings[3][1]]
+    CROSSHAIR_W = game_setting_options[game_settings[3][0]][game_settings[3][1]]
+    CROSSHAIR_H = game_setting_options[game_settings[4][0]][game_settings[4][1]]
     
     snowball_sprites = [
                          [loadImage(images['snowball']), 920, 585, 18, 18],
@@ -377,7 +424,7 @@ def setup():
                          [loadImage(images['snowball_break2']), 920, 585, 40, 40]
                          ]
     # scale of the bg (p:m) = 1000: 100 = 10:1 and game is at 60fps
-    # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower    
+    # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower 
     SB_START_X, SB_START_Y = 920, 585
     sb_vertexX, sb_vertexY = None, None
     sb_start_time = frameCount
@@ -386,6 +433,7 @@ def setup():
     Vt = 0
     Vi = None
     sb_inverse = False
+    num_snowballs = game_setting_options[game_settings[0][0]][game_settings[0][1]]
     
     hill_points = get_hill_points(40)
     point_count = 1
@@ -428,6 +476,9 @@ def draw():
         
         score = 0
         sb_vertexX, sb_vertexY = None, None
+    
+    elif gameEnd:
+        game_end()
 
     else:
         image(bg, bgX, bgY, canvasW, canvasH)

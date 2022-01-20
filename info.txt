@@ -6,6 +6,7 @@ player_walk1.png, player_walk2.png, player_walk3.png, player_dead.png, santa_fly
 
 Other variables:
 high_score = 0
+starting_snowballs = 20
 snowball_speed = medium
 toboggan_speed = medium
 crosshair_width = medium
