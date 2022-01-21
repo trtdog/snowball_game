@@ -2,30 +2,32 @@ add_library('minim')
 import random
 
 
-def get_game_info():
+def get_game_info(img_line_end, settings_line_start):
     images = {}
     image_names = ['background', 'crosshair', 'player_aim', 'player_idle', 'player_pickup1', 'player_pickup2', 'player_throw1',
                    'player_throw2', 'present', 'snowball', 'snowball_break1', 'snowball_break2', 'snowflake', 'sword', 'target_slide1',
-                   'target_slide2', 'target_walk1', 'target_walk2', 'target_walk3', 'player_wait', 'player_walk1', 'player_walk2', 'player_walk3', 
-                   'player_dead', 'santa_fly1', 'santa_fly2', 'background2']
+                   'target_slide2', 'target_walk1', 'target_walk2', 'target_walk3', 'player_wait', 'player_walk1', 'player_walk2', 
+                   'player_walk3', 'santa_fly1', 'santa_fly2', 'background2', 'player_dying1', 'player_dying2', 
+                   'blood_splatter1', 'blood_splatter2', 'player_fall1', 'player_fall2']
     image_files = []
     with open("info.txt") as f:
         lines = f.readlines()
-        for line in lines[1:5]:
+        for line in lines[1:img_line_end]:
             image_files += line.rstrip(',\n').split(', ')
         for index, image_name in enumerate(image_names):
             images[image_name] = image_files[index]
             
-        game_settings = [line.rstrip().split(' = ') for line in lines[7:]]
+        game_settings = [line.rstrip().split(' = ') for line in lines[settings_line_start:]]
     return images, game_settings
 
 
 def player_throw():
-    global num_snowballs, gameEnd
+    global num_snowballs, scene, win
     
     num_snowballs -= 1
     if num_snowballs == 0:
-        gameEnd = True
+        win = score >= 0.4 * initial_snowballs    # If the player hits 30% of his shots, he wins the game
+        scene = 3
 
     for i in range(1, len(player_sprites)):
         image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
@@ -38,18 +40,22 @@ def draw_snowball():
     if sb_vertexX:
         t = frameCount - sb_start_time    # [t] = 1/60s
         d = sb_vertexY - SB_START_Y
+        #try:
         Vi = (Vt**2 - 2*a*d)**0.5
+        #except ValueError:
+            #t = d / a
+            #Vt = a*t + Vi
         snowball_sprites[0][2] = int(round((15) * t**2 - Vi*t*1000000/3600 + 585))
         #print((snowball_sprites[0][2] - sb_vertexY))
         #print((SB_START_Y - sb_vertexY)/(SB_START_X - sb_vertexX)**2)
+        
         n = ( abs(snowball_sprites[0][2] - sb_vertexY) /
-             ((SB_START_Y-sb_vertexY) / float((SB_START_X-sb_vertexX)**2)) )
+            ((SB_START_Y-sb_vertexY) / float((SB_START_X-sb_vertexX)**2)) )
         if snowball_sprites[0][2] - sb_vertexY <= 0:
             sb_inverse = True
         snowball_sprites[0][1] = n**0.5+sb_vertexX if not sb_inverse else -n**0.5+sb_vertexX
         snowball_sprites[0][1] = int(round(snowball_sprites[0][1]))
-        #print(snowball_sprites[0][2], Vi*t, (0.0002*1000000/3600) * t**2 * t**2)
-                
+            
         playerHit = detect_collision(snowball_sprites[0][1:], toboggan_down_sprites[0][1:]) or \
                     detect_collision(snowball_sprites[0][1:], toboggan_up_sprites[0][1:])
         if playerHit:
@@ -244,7 +250,7 @@ def detect_button_pressed(boundary):
 def menu_system():
     """Checks if a button is pressed and if it is, then perform that action"""
 
-    global buttonActivated, buttonPressed, prev_index, startGame
+    global buttonActivated, buttonPressed, prev_index, scene
     
     index = None
     for boundary in all_boundaries:
@@ -271,15 +277,16 @@ def menu_system():
     elif index == 2:
         draw_resume()
     elif index == 3:
-        startGame = True
+        scene = 1
 
 
 def game_end():
-    global bgX, bg_endX, player_count, santa_count
-
+    global scene, win, bgX, bg_endX, player_count, santa_count
+    global presentX, presentY, drop_initial_time
+    global swordX, swordY
+    
     image(bg, bgX, bgY, canvasW, canvasH)
     image(bg_end, bg_endX, bg_endY, bg_endW, bg_endH)
-    
     if bg_endX > canvasW-bg_endW:
         bg_endX -= 5
         bgX -= 5
@@ -292,35 +299,81 @@ def game_end():
             image(*player_sprites_end[1])
         elif player_count % 4 == 3:
             image(*player_sprites_end[3])
-        player_count += 1
         
-    else:
-        if santa_count % 2 == 0:
-            image(*santa_flying_sprites[0])
-        if santa_count % 2 == 1:
-            image(*santa_flying_sprites[1])
-        santa_flying_sprites[0][1] += 5
-        santa_flying_sprites[1][1] += 5
-        santa_count += 1
+        player_count += 1                    
+    
+    elif win:
+        if presentY < player_sprites_end[0][2] - PRESENT_H:
+            if santa_flying_sprites[0][1] < canvasW:
+                if santa_count % 2 == 0:
+                    image(*santa_flying_sprites[0])
+                if santa_count % 2 == 1:
+                    image(*santa_flying_sprites[1])
+                santa_flying_sprites[0][1] += 5
+                santa_flying_sprites[1][1] += 5
+                santa_count += 1
+            
+            if presentX >= player_sprites_end[0][1]:
+                if not drop_initial_time:
+                    drop_initial_time = frameCount    
+                t = frameCount-drop_initial_time    # [t] = 1/60s
+                vel = (a*t - 0.0001*t) * 1000000 / 3600
+                presentY += vel
+                image(present, presentX, presentY, PRESENT_W, PRESENT_H)
+            else:
+                presentX += 5
+            image(*player_sprites_end[0])
+        else:
+            win = "game end"
+    
+    elif not win:
+        if swordY < player_sprites_end[0][2] - SWORD_H:
+            if santa_flying_sprites[0][1] < canvasW:
+                if santa_count % 2 == 0:
+                    image(*santa_flying_sprites[0])
+                if santa_count % 2 == 1:
+                    image(*santa_flying_sprites[1])
+                santa_flying_sprites[0][1] += 5
+                santa_flying_sprites[1][1] += 5
+                santa_count += 1
+            
+            if swordX >= player_sprites_end[0][1]:
+                if not drop_initial_time:
+                    drop_initial_time = frameCount
+                t = frameCount - drop_initial_time    # [t] = 1/60s
+                vel = (a*t - 0.0001*t) * 1000000 / 3600
+                swordY += vel
+                image(sword, swordX, swordY, SWORD_W, SWORD_H)
+            else:
+                swordX += 5
+            
+            player_count = 4
+            image(*player_sprites_end[0])
         
-        if santa_flying_sprites[0][1] >= player_sprites_end[0][1]:
-            pass
-        
-        image(*player_sprites_end[0])
+        else:
+            if player_count <= len(player_sprites_end) - 1:
+                image(*player_sprites_end[player_count])
+                player_count += 1
+            else:
+                win = "game end"
+
+    if win == "game end":
+        delay(4000)
+        scene = 1
 
     
 def mouseReleased():
-    global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, startGame, buttonPressed
+    global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, scene, buttonPressed
     
-    if startGame and detect_button_pressed(( (canvasW/2-100, canvasH/2-50), (canvasW/2+100, canvasH/2+50) )):
+    if scene == 1 and detect_button_pressed(( (canvasW/2-100, canvasH/2-50), (canvasW/2+100, canvasH/2+50) )):
         buttonPressed = True
-        startGame = False
+        scene = 2
         noCursor()
     
     menu_system()
     
     # Checking snowball thrown
-    if not buttonPressed and not sb_vertexX:     # !!!! change the if statement to only run if a button isn't pressed
+    if not buttonPressed and not sb_vertexX:
         player_throw()
         sb_start_time = frameCount
         sb_vertexX, sb_vertexY = mouseX, mouseY
@@ -333,16 +386,18 @@ def mouseReleased():
 def setup():
     """Sets up all the key variables in the game"""
     
-    global player_sprites, player_sprites_end, player_count
-    global snowball_sprites, num_snowballs, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time
-    global a, d, Vt, Vi, sb_inverse
+    global player_sprites, player_sprites_end, player_count, win
+    global snowball_sprites, num_snowballs, initial_snowballs
+    global a, d, Vt, Vi, sb_inverse, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
     global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY, bg_endW, bg_endH
     global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
-    global game_settings, game_setting_options, high_score, score, startGame, gameEnd
+    global game_settings, game_setting_options, high_score, score, scene
     global all_boundaries, button_lengths, BUTTON_HEIGHT, startX, startY, buttonActivated, buttonPressed
     global font, button_texts, prev_index
     global santa_flying_sprites, santa_count
+    global present, presentY, presentX, PRESENT_W, PRESENT_H, drop_initial_time
+    global sword, swordX, swordY, SWORD_W, SWORD_H
     
     game_setting_options = {
                             'starting_snowballs':
@@ -358,11 +413,10 @@ def setup():
                             'snowing_rate':
                                 {'low': 5, 'medium': 10, 'high': 15}    # u = delta snowballs / 60 frameCount
                                 }
-    images, game_settings = get_game_info()
+    images, game_settings = get_game_info(7, 9)
     high_score = game_settings.pop(0)[1]
     score = 0
-    startGame = True
-    gameEnd = False
+    scene = 1
     
     bg = loadImage(images['background'])
     bgX, bgY = 0, 0
@@ -406,13 +460,30 @@ def setup():
                           [loadImage(images['player_walk1']), 870, 683-125, 75, 125],
                           [loadImage(images['player_walk2']), 870, 683-125, 75, 125],
                           [loadImage(images['player_walk3']), 870, 683-125, 75, 125],
-                          [loadImage(images['player_dead']), 870, 683-125, 75, 125],
+                          [loadImage(images['player_dying1']), 870, 683-170, 100, 170],
+                          [loadImage(images['blood_splatter1']), 849, 683-135, 118, 45],
+                          [loadImage(images['player_fall1']), 870, 683-150, 120, 150],
+                          [loadImage(images['blood_splatter2']), 814, 683-135, 220, 110],
+                          [loadImage(images['player_fall2']), 870, 683-113, 150, 113],
+                          [loadImage(images['player_dying2']), 870, 683-70, 180, 75]
                           ]
+    win = False
     
-    santa_flying_sprites = [[loadImage(images['santa_fly1']), 0, 50, 200, 138], [loadImage(images['santa_fly2']), 0, 50, 200, 138]]
+    santa_flying_sprites = [[loadImage(images['santa_fly1']), -200, 50, 200, 138], [loadImage(images['santa_fly2']), -200, 50, 200, 138]]
     santa_count = 0
+    
     present = loadImage(images['present'])
+    presentX = -200
+    presentY = 50
+    PRESENT_W = 58
+    PRESENT_H = 73
+    drop_initial_time = None
+    
     sword = loadImage(images['sword'])
+    swordX = -200
+    swordY = 40
+    SWORD_W = 72
+    SWORD_H = 136
     
     crosshair = loadImage(images['crosshair'])
     CROSSHAIR_W = game_setting_options[game_settings[3][0]][game_settings[3][1]]
@@ -434,6 +505,7 @@ def setup():
     Vi = None
     sb_inverse = False
     num_snowballs = game_setting_options[game_settings[0][0]][game_settings[0][1]]
+    initial_snowballs = num_snowballs
     
     hill_points = get_hill_points(40)
     point_count = 1
@@ -457,8 +529,8 @@ def draw():
     """Redraws every sprite 60 fps to show the change in motion"""
     
     global score, sb_vertexX, sb_vertexY
-    
-    if startGame:
+    print(frameCount, second())
+    if scene == 1:
         rectMode(CORNER)
         fill(150)
         rect(0, 0, canvasW, canvasH)
@@ -476,14 +548,18 @@ def draw():
         
         score = 0
         sb_vertexX, sb_vertexY = None, None
+        player_count = 0
     
-    elif gameEnd:
-        game_end()
-
-    else:
+    elif scene == 2:
+        
         image(bg, bgX, bgY, canvasW, canvasH)
         draw_menu()
         draw_snowball()
         draw_crosshair()
         draw_tobogganer()
         image(*player_sprites[0])
+    
+    elif scene == 3:
+        game_end()
+        
+        
