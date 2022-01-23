@@ -23,14 +23,11 @@ def get_game_info(img_line_end, settings_line_start):
 
 
 def player_throw():
-    global num_snowballs, scene, win
+    global num_snowballs
     
     sb_throw_sound.play()
     sb_throw_sound.rewind()
     num_snowballs -= 1
-    if num_snowballs == 0:
-        win = score >= 0.3 * initial_snowballs    # If the player hits 30% of his shots, he wins the game
-        scene = 3
 
     for i in range(1, len(player_sprites)):
         image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
@@ -38,17 +35,13 @@ def player_throw():
 
 
 def draw_snowball():
-    global sb_vertexX, sb_vertexY, d, Vi, score, sb_inverse
+    global sb_vertexX, sb_vertexY, d, Vi, score, sb_inverse, scene, win
     
     if sb_vertexX:
         t = frameCount - sb_start_time    # [t] = 1/60s
         d = sb_vertexY - SB_START_Y
-        #try:
         Vi = (Vt**2 - 2*a*d)**0.5
-        #except ValueError:
-            #t = d / a
-            #Vt = a*t + Vi
-        snowball_sprites[0][2] = int(round((15) * t**2 - Vi*t*1000000/3600 + 585))
+        snowball_sprites[0][2] = int(round((16) * t**2 - Vi*t*1000000/3600 + 585))
         #print((snowball_sprites[0][2] - sb_vertexY))
         #print((SB_START_Y - sb_vertexY)/(SB_START_X - sb_vertexX)**2)
         
@@ -56,6 +49,7 @@ def draw_snowball():
             ((SB_START_Y-sb_vertexY) / float((SB_START_X-sb_vertexX)**2)) )
         if snowball_sprites[0][2] - sb_vertexY <= 0:
             sb_inverse = True
+
         snowball_sprites[0][1] = n**0.5+sb_vertexX if not sb_inverse else -n**0.5+sb_vertexX
         snowball_sprites[0][1] = int(round(snowball_sprites[0][1]))
             
@@ -72,10 +66,14 @@ def draw_snowball():
                 detect_collision(snowball_sprites[0][1:], hill_points, True)
         
         if snowballCollided:
+            if num_snowballs == 0:
+                win = score >= 0.3 * initial_snowballs    # If the player hits 30% of his shots, he wins the game
+                scene = 3
+                
             snowball_sprites[1][1], snowball_sprites[1][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             snowball_sprites[2][1], snowball_sprites[2][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             sb_vertexX, sb_vertexY = None, None
-            snowball_sprites[0][1], snowball_sprites[0][2] = 872, 604   
+            snowball_sprites[0][1], snowball_sprites[0][2] = SB_START_X, SB_START_Y   
             image(*snowball_sprites[1])
             image(*snowball_sprites[2])
     
@@ -155,7 +153,7 @@ def draw_snowflakes():
         snowflake_sprites[count][2] += 5
         
         if detect_collision(snowflake_sprites[count][1:], hill_points, curveObj=True) or \
-        detect_collision(snowflake_sprites[count][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH)):
+        detect_collision(snowflake_sprites[count][1:], (bgX, int(hill_points[-1][1]), canvasW, canvasH)):
             del snowflake_sprites[count]
         else:
             count += 1
@@ -293,7 +291,17 @@ def menu_system():
         draw_resume()
     elif index == 3:
         scene = 1
+ 
 
+def game_middle():
+    image(bg, bgX, bgY, canvasW, canvasH)
+    draw_menu()
+    draw_snowball()
+    draw_crosshair()
+    draw_tobogganer()
+    draw_snowflakes()
+    image(*player_sprites[0])
+    
 
 def game_end():
     global scene, win, bgX, bg_endX, player_count, santa_count
@@ -302,6 +310,8 @@ def game_end():
     
     image(bg, bgX, bgY, canvasW, canvasH)
     image(bg_end, bg_endX, bg_endY, bg_endW, bg_endH)
+    draw_snowflakes()
+    
     if bg_endX > canvasW-bg_endW:
         bg_endX -= 5
         bgX -= 5
@@ -315,11 +325,12 @@ def game_end():
         elif player_count % 4 == 3:
             image(*player_sprites_end[3])
         
-        player_count += 1                    
+        player_count += 1
     
     elif win:
         if presentY < player_sprites_end[0][2] - PRESENT_H:
             if santa_flying_sprites[0][1] < canvasW:
+                santa_sound.play()
                 if santa_count % 2 == 0:
                     image(*santa_flying_sprites[0])
                 if santa_count % 2 == 1:
@@ -382,26 +393,27 @@ def game_end():
 def mouseReleased():
     global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, scene, buttonPressed
     
+    # Checking restart button pressed
     if scene == 1 and detect_button_pressed(( (canvasW/2-100, canvasH/2-50), (canvasW/2+100, canvasH/2+50) )):
         buttonPressed = True
         scene = 2
+        loop()
         noCursor()
     
     menu_system()
     
     # Checking snowball thrown
-    if not buttonPressed and not sb_vertexX:
+    if not buttonPressed and not sb_vertexX and mouseY < SB_START_Y and mouseX <= SB_START_X:
         player_throw()
         sb_start_time = frameCount
         sb_vertexX, sb_vertexY = mouseX, mouseY
-        snowballX, snowballY = SB_START_X, SB_START_Y
         sb_inverse = False
     
     buttonPressed = False
 
 
-def setup():
-    """Sets up all the key variables in the game"""
+def game_start():
+    """Sets up all the key variables in the game and draws the start screen"""
     
     global player_sprites, player_sprites_end, player_count, win, images
     global santa_sound, target_hit_sound, sb_throw_sound, music, death_sound
@@ -416,6 +428,8 @@ def setup():
     global santa_flying_sprites, santa_count
     global present, presentY, presentX, PRESENT_W, PRESENT_H, drop_initial_time
     global sword, swordX, swordY, SWORD_W, SWORD_H
+
+    noLoop()
     
     minim = Minim(this)
     santa_sound = minim.loadFile("santa.mp3")
@@ -423,8 +437,6 @@ def setup():
     sb_throw_sound = minim.loadFile("snowball_throw.mp3")
     music = minim.loadFile("music.mp3")
     death_sound = minim.loadFile("death.mp3")
-        
-    music.loop()
 
     game_setting_options = {
                             'starting_snowballs':
@@ -523,7 +535,7 @@ def setup():
                          ]
     # scale of the bg (p:m) = 1000: 100 = 10:1 and game is at 60fps
     # snowball is thrown at 90m/s = 900p/s = 15p/frame #NOTE! FPS is at 20 but should be at 60 so the snowball is 3 times slower 
-    SB_START_X, SB_START_Y = 920, 585
+    SB_START_X, SB_START_Y = 872, 604
     sb_vertexX, sb_vertexY = None, None
     sb_start_time = frameCount
     a = 0.0004
@@ -549,45 +561,37 @@ def setup():
                            [loadImage(images['target_walk3']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67]
                            ]
     goingDown = True
+    
+    rectMode(CORNER)
+    fill(150)
+    rect(0, 0, canvasW, canvasH)
+    cursor()
+    rectMode(CENTER)
+    fill(255)
+    rect(canvasW/2, canvasH/2, 200, 100)
 
+    fill(0)
+    textAlign(CENTER, CENTER)
+    textFont(font, 60)
+    text("Snowball Game", canvasW/2, 200)
+    textFont(font, 40)
+    text("PLAY", canvasW/2, canvasH/2)        
+    
+
+def setup():
     size(1000, 800)
     frameRate(60)
+    game_start()
+    music.loop()
 
-    
+
 def draw():
     """Redraws every sprite 60 fps to show the change in motion"""
-    
-    global score, sb_vertexX, sb_vertexY
-    
-    if scene == 1:
-        rectMode(CORNER)
-        fill(150)
-        rect(0, 0, canvasW, canvasH)
-        cursor()
-        rectMode(CENTER)
-        fill(255)
-        rect(canvasW/2, canvasH/2, 200, 100)
 
-        fill(0)
-        textAlign(CENTER, CENTER)
-        textFont(font, 60)
-        text("Snowball Game", canvasW/2, 200)
-        textFont(font, 40)
-        text("PLAY", canvasW/2, canvasH/2)        
-        
-        score = 0
-        sb_vertexX, sb_vertexY = None, None
-        player_count = 0
-    
+    if scene == 1:
+        game_start()
     elif scene == 2:
-        image(bg, bgX, bgY, canvasW, canvasH)
-        draw_menu()
-        draw_snowball()
-        draw_crosshair()
-        draw_tobogganer()
-        draw_snowflakes()
-        image(*player_sprites[0])
-    
+        game_middle()
     elif scene == 3:
         game_end()
 
@@ -602,3 +606,4 @@ def stop():
     death_sound.close()
     minim.stop()
     super.stop()
+    
