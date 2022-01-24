@@ -22,17 +22,21 @@ def get_game_info(img_line_end, settings_line_start):
     return images, game_settings
 
 
-def player_throw():
-    global num_snowballs
+def draw_player():
+    global playerThrow, player_count
     
-    sb_throw_sound.play()
-    sb_throw_sound.rewind()
-    num_snowballs -= 1
-
-    for i in range(1, len(player_sprites)):
-        image(player_sprites[i][0], player_sprites[i][1], player_sprites[i][2],
-                player_sprites[i][3], player_sprites[i][4])
-
+    image(*player_sprites[player_count])
+    if mousePressed:
+        player_count = 1
+    elif playerThrow:
+        sb_throw_sound.play()
+        sb_throw_sound.rewind()
+        player_count += 1
+        if player_count == len(player_sprites)-1:
+            playerThrow = False
+    else:
+        player_count = 0
+    
 
 def draw_snowball():
     global sb_vertexX, sb_vertexY, d, Vi, score, sb_inverse, scene, win
@@ -53,8 +57,8 @@ def draw_snowball():
         snowball_sprites[0][1] = n**0.5+sb_vertexX if not sb_inverse else -n**0.5+sb_vertexX
         snowball_sprites[0][1] = int(round(snowball_sprites[0][1]))
             
-        targetHit = detect_collision(snowball_sprites[0][1:], toboggan_down_sprites[0][1:]) or \
-                    detect_collision(snowball_sprites[0][1:], toboggan_up_sprites[0][1:])
+        targetHit = goingDown and detect_collision(snowball_sprites[0][1:], toboggan_down_sprites[0][1:]) or \
+                    not goingDown and detect_collision(snowball_sprites[0][1:], toboggan_up_sprites[0][1:])
         if targetHit:
             target_hit_sound.play()
             target_hit_sound.rewind()
@@ -65,11 +69,7 @@ def draw_snowball():
                 detect_collision(snowball_sprites[0][1:], (bgX, int(hill_points[-1][1])-snowball_sprites[0][-1], canvasW, canvasH)) or \
                 detect_collision(snowball_sprites[0][1:], hill_points, True)
         
-        if snowballCollided:
-            if num_snowballs == 0:
-                win = score >= 0.3 * initial_snowballs    # If the player hits 30% of his shots, he wins the game
-                scene = 3
-                
+        if snowballCollided:                
             snowball_sprites[1][1], snowball_sprites[1][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             snowball_sprites[2][1], snowball_sprites[2][2] = snowball_sprites[0][1], snowball_sprites[0][2]
             sb_vertexX, sb_vertexY = None, None
@@ -104,7 +104,7 @@ def get_tobaggan_radians(hill_points):
         
 
 def draw_tobogganer():
-    global point_count, goingDown, index
+    global point_count, goingDown, toboggan_index
     
     if goingDown:
         if frameCount % game_setting_options[game_settings[2][0]][game_settings[2][1]][0] == 0:
@@ -136,19 +136,19 @@ def draw_tobogganer():
                 toboggan_up_sprites[2][2] = round(hill_points[point_count][1])-67
                 index = 2
         
-        point_count -= 1
-        if point_count == 0:
-            goingDown = True
+            point_count -= 1
+            if point_count == 0:
+                goingDown = True
 
     pushMatrix()
     if goingDown:
-        translate(toboggan_down_sprites[index][1], toboggan_down_sprites[index][2])    # Moves the origin to the pivot point
+        translate(toboggan_down_sprites[toboggan_index][1], toboggan_down_sprites[toboggan_index][2])    # Moves the origin to the pivot point
         rotate(toboggan_radians[point_count-1])
-        image(toboggan_down_sprites[index][0], 50, 0, toboggan_down_sprites[index][-2], toboggan_down_sprites[index][-1])
+        image(toboggan_down_sprites[toboggan_index][0], 0, 0, toboggan_down_sprites[toboggan_index][-2], toboggan_down_sprites[toboggan_index][-1])
     else:
-        translate(toboggan_up_sprites[index][1], toboggan_up_sprites[index][2])
+        translate(toboggan_up_sprites[toboggan_index][1], toboggan_up_sprites[toboggan_index][2])
         rotate(toboggan_radians[point_count-1])
-        image(toboggan_up_sprites[index][0], 50, 0, toboggan_up_sprites[index][-2], toboggan_up_sprites[index][-1])
+        image(toboggan_up_sprites[toboggan_index][0], 0, 0, toboggan_up_sprites[toboggan_index][-2], toboggan_up_sprites[toboggan_index][-1])
     popMatrix()
 
 
@@ -304,10 +304,13 @@ def game_middle():
     image(bg, bgX, bgY, canvasW, canvasH)
     draw_menu()
     draw_snowball()
+    draw_player()
     draw_crosshair()
     draw_tobogganer()
     draw_snowflakes()
-    image(*player_sprites[0])
+    if num_snowballs == 0:
+        win = score >= 0.3 * initial_snowballs    # If the player hits at least 30% of his shots, he wins the game
+        scene = 3
     
 
 def game_end():
@@ -398,7 +401,7 @@ def game_end():
 
     
 def mouseReleased():
-    global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, scene, buttonPressed
+    global sb_vertexX, sb_vertexY, sb_start_time, sb_inverse, scene, buttonPressed, playerThrow, num_snowballs
     
     # Checking restart button pressed
     if scene == 1 and detect_button_pressed(( (canvasW/2-100, canvasH/2-50), (canvasW/2+100, canvasH/2+50) )):
@@ -411,7 +414,8 @@ def mouseReleased():
     
     # Checking snowball thrown
     if not buttonPressed and not sb_vertexX and mouseY < SB_START_Y and mouseX <= SB_START_X:
-        player_throw()
+        playerThrow = True
+        num_snowballs -= 1
         sb_start_time = frameCount
         sb_vertexX, sb_vertexY = mouseX, mouseY
         sb_inverse = False
@@ -422,13 +426,13 @@ def mouseReleased():
 def game_start():
     """Sets up all the key variables in the game and draws the start screen"""
     
-    global player_sprites, player_sprites_end, player_count, win, images
+    global player_sprites, player_sprites_end, player_count, playerThrow, win, images
     global santa_sound, target_hit_sound, sb_throw_sound, music, death_sound
     global snowball_sprites, num_snowballs, initial_snowballs, snowflake_sprites
     global a, d, Vt, Vi, sb_inverse, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
     global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY, bg_endW, bg_endH
-    global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown, index
+    global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown, toboggan_index
     global game_settings, game_setting_options, high_score, score, scene
     global all_boundaries, button_lengths, BUTTON_HEIGHT, startX, startY, buttonActivated, buttonPressed
     global font, button_texts, prev_index
@@ -451,7 +455,7 @@ def game_start():
                             'snowball_speed':
                                 {'low': 10, 'medium': 15, 'high': 20},    # u = x-inc
                             'toboggan_speed':
-                                {'low': [3, 10], 'medium': [2, 8], 'high': [1, 6]},    # u = frameCount/deltaFrames, [a, b] a=down, b=up
+                                {'low': [3, 10], 'medium': [2, 6], 'high': [1, 6]},    # u = frameCount/deltaFrames, [a, b] a=down, b=up
                             'crosshair_width':
                                 {'low': 30, 'medium': 50, 'high': 70},    # u = p
                             'crosshair_height':
@@ -474,6 +478,7 @@ def game_start():
     bg_endW = 400
     bg_endH = canvasH
     
+    # Drawing the menu
     all_boundaries = []
     button_lengths = (120, 100, 110, 110)    # Order: Most left -> Most right on the canvas
     BUTTON_HEIGHT = 50
@@ -500,6 +505,7 @@ def game_start():
                       [loadImage(images['player_pickup2']), 870, 683-125, 75, 125]
                          ]    #Sprite parameters: image, x, y, w, h
     
+    playerThrow = False
     player_count = 0
     player_sprites_end = [
                           [loadImage(images['player_wait']), 870, 683-125, 75, 125],
@@ -568,7 +574,7 @@ def game_start():
                            [loadImage(images['target_walk3']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67]
                            ]
     goingDown = True
-    index = None
+    toboggan_index = 0
     
     rectMode(CORNER)
     fill(150)
@@ -595,12 +601,11 @@ def setup():
 
 def draw():
     """Redraws every sprite 60 fps to show the change in motion"""
-
+    
     if scene == 1:
         game_start()
     elif scene == 2:
         game_middle()
-        bezier(0, 435, 85, 435, 160, 685, 360, 683)
     elif scene == 3:
         game_end()
 
