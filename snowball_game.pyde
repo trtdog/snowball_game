@@ -104,22 +104,18 @@ def get_tobaggan_radians(hill_points):
         
 
 def draw_tobogganer():
-    global point_count, goingDown
+    global point_count, goingDown, index
     
-    pushMatrix()
-    translate(toboggan_down_sprites[0][1], toboggan_down_sprites[0][2]-67)    # Moves the origin to the pivot point
-    rotate(toboggan_radians[point_count-1])
-    popMatrix()
     if goingDown:
         if frameCount % game_setting_options[game_settings[2][0]][game_settings[2][1]][0] == 0:
             if point_count % 2 == 0:
                 toboggan_down_sprites[0][1] = round(hill_points[point_count][0])
                 toboggan_down_sprites[0][2] = round(hill_points[point_count][1])-67
-                image(*toboggan_down_sprites[0])
+                index = 0
             elif point_count % 2 == 1:
                 toboggan_down_sprites[1][1] = round(hill_points[point_count][0])
                 toboggan_down_sprites[1][2] = round(hill_points[point_count][1])-67
-                image(*toboggan_down_sprites[1])
+                index = 1
             
             point_count += 1
             if point_count == len(hill_points)-1:
@@ -130,19 +126,30 @@ def draw_tobogganer():
             if point_count % 3 == 1:
                 toboggan_up_sprites[0][1] = round(hill_points[point_count][0])
                 toboggan_up_sprites[0][2] = round(hill_points[point_count][1])-67
-                image(*toboggan_up_sprites[0])        
+                index = 0 
             elif point_count % 3 == 2:
                 toboggan_up_sprites[1][1] = round(hill_points[point_count][0])
                 toboggan_up_sprites[1][2] = round(hill_points[point_count][1])-67
-                image(*toboggan_up_sprites[1])        
+                index = 1      
             elif point_count % 3 == 0:
                 toboggan_up_sprites[2][1] = round(hill_points[point_count][0])
                 toboggan_up_sprites[2][2] = round(hill_points[point_count][1])-67
-                image(*toboggan_up_sprites[2])
+                index = 2
         
         point_count -= 1
         if point_count == 0:
-            goingDown = True        
+            goingDown = True
+
+    pushMatrix()
+    if goingDown:
+        translate(toboggan_down_sprites[index][1], toboggan_down_sprites[index][2])    # Moves the origin to the pivot point
+        rotate(toboggan_radians[point_count-1])
+        image(toboggan_down_sprites[index][0], 50, 0, toboggan_down_sprites[index][-2], toboggan_down_sprites[index][-1])
+    else:
+        translate(toboggan_up_sprites[index][1], toboggan_up_sprites[index][2])
+        rotate(toboggan_radians[point_count-1])
+        image(toboggan_up_sprites[index][0], 50, 0, toboggan_up_sprites[index][-2], toboggan_up_sprites[index][-1])
+    popMatrix()
 
 
 def draw_snowflakes():
@@ -421,7 +428,7 @@ def game_start():
     global a, d, Vt, Vi, sb_inverse, SB_START_X, SB_START_Y, sb_vertexX, sb_vertexY, sb_start_time
     global crosshair, CROSSHAIR_W, CROSSHAIR_H
     global bg, bgX, bgY, canvasW, canvasH, bg_end, bg_endX, bg_endY, bg_endW, bg_endH
-    global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown
+    global hill_points, point_count, toboggan_down_sprites, toboggan_up_sprites, toboggan_radians, goingDown, index
     global game_settings, game_setting_options, high_score, score, scene
     global all_boundaries, button_lengths, BUTTON_HEIGHT, startX, startY, buttonActivated, buttonPressed
     global font, button_texts, prev_index
@@ -561,6 +568,7 @@ def game_start():
                            [loadImage(images['target_walk3']), hill_points[-1][0], hill_points[-1][1]-67, 75, 67]
                            ]
     goingDown = True
+    index = None
     
     rectMode(CORNER)
     fill(150)
@@ -592,6 +600,7 @@ def draw():
         game_start()
     elif scene == 2:
         game_middle()
+        bezier(0, 435, 85, 435, 160, 685, 360, 683)
     elif scene == 3:
         game_end()
 
